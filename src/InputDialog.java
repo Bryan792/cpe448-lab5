@@ -36,20 +36,23 @@ import javax.swing.BoxLayout;
 import java.io.File;
 import java.io.FileWriter;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+
 @SuppressWarnings("serial")
 public class InputDialog extends JDialog
 {
   /*
    * CONSTANTS
    */
-  private final int DIALOG_HEIGHT = 800, DIALOG_WIDTH = 500;
+  private final int DIALOG_HEIGHT = 600, DIALOG_WIDTH = 500;
 
   /*
    * GUI Components
    */
   private Container mPane;
   private JTextField mFile, mStartPos, mEndPos, mWinSize, mShiftIncr, mFile2,
-      mRangeStart, mRangeEnd, mType2, mFilter;
+          mLoopMin, mLoopMax, mPalindromeMin, mPalindromeMax;
   private JTextArea mDisplayArea;
   private JCheckBox mUseSlidingWindow;
   private JComboBox mOptsBox, mTypesBox;
@@ -71,65 +74,45 @@ public class InputDialog extends JDialog
     mPane.setLayout(new BoxLayout(mPane, BoxLayout.Y_AXIS));
     mPane.setSize(DIALOG_WIDTH, DIALOG_HEIGHT);
 
+    //Declare Text Fields
     mFile = new JTextField(20);
     mFile2 = new JTextField(20);
-    mStartPos = new JTextField(20);
-    mEndPos = new JTextField(20);
-
-    mRangeStart = new JTextField(20);
-    mRangeEnd = new JTextField(20);
-    mType2 = new JTextField(20);
-    mFilter = new JTextField(20);
-
-    mUseSlidingWindow = new JCheckBox("Use Sliding Window", false);
-
+    mPalindromeMin = new JTextField(5);
+    mPalindromeMax = new JTextField(5);
+    mLoopMin = new JTextField(5);
+    mLoopMax = new JTextField(5);
     mDisplayArea = new JTextArea();
     mWinSize = new JTextField(20);
     mShiftIncr = new JTextField(20);
 
-    JPanel fastaFileField = prepareFileField(mFile);
-    JPanel gffFileField = prepareFileField(mFile2);
-
-    JPanel posField = prepareParamControls(mStartPos, mEndPos, mWinSize,
-        mShiftIncr, mUseSlidingWindow);
-
-    getContentPane().add(fastaFileField);
+    //Prepare More Complicated Lines
+    JPanel fastaFileField = prepareFileField(mFile, "Select Fasta: ");
+    JPanel gffFileField = prepareFileField(mFile2,  "Select GFF:    ");
+    JPanel loopSizeField = prepareMinMaxField(mLoopMin, mLoopMax);
+    JPanel palindromeSizeField = prepareMinMaxField(mPalindromeMin, mPalindromeMax);
+    
+    //Add Lines to Pane
+    mPane.add(fastaFileField);
     mPane.add(gffFileField);
-    mPane.add(new JLabel("Filter Size"));
-    mPane.add(mFilter);
+    mPane.add(textFieldLeftAlign("Palindrome Range"));
+    mPane.add(palindromeSizeField);
+    mPane.add(textFieldLeftAlign("Loop Range"));
+    mPane.add(loopSizeField);
 
-    String[] searchOpts = { "All", "Specify Range", "To Start Codon"  };
-    mOptsBox = new JComboBox(searchOpts);
-    mPane.add(mOptsBox);
-    mPane.add(new JLabel("Start"));
-    mPane.add(mRangeStart);
-    mPane.add(new JLabel("End"));
-    mPane.add(mRangeEnd);
-
-    String[] searchType = { "Specific String", "Min Repeat Size" };
-    mTypesBox = new JComboBox(searchType);
-    mPane.add(mTypesBox);
-    mPane.add(new JLabel("Search String/Repeat Length"));
-    mPane.add(mType2);
-
-    // mPane.add(posField);
-
-    // mPane.add(mDisplayArea);
+    //Configure Output Box
     JScrollPane scrollDisplay = new JScrollPane(mDisplayArea);
-    scrollDisplay.setPreferredSize(new Dimension(200, 300));
+    scrollDisplay.setPreferredSize(new Dimension(200, 300));    
     mPane.add(scrollDisplay);
-
     mPane.add(initControls());
-
     mPane.validate();
   }
 
   public static void main(String[] args)
   {
     EventQueue.invokeLater(new Runnable()
-    {
-      public void run()
-      {
+        {
+        public void run()
+        {
         try
         {
           InputDialog dialog = new InputDialog();
@@ -139,27 +122,45 @@ public class InputDialog extends JDialog
         {
           e.printStackTrace();
         }
-      }
-    });
+        }
+        });
   }
 
   /*
    * Creates and returns a JPanel containing sub components that make up the
    * input file selection section
    */
-  private JPanel prepareFileField(JTextField fileField)
+  private JPanel prepareFileField(JTextField fileField, String text)
   {
     JPanel fastaFileField = new JPanel();
+    fastaFileField.setLayout(new FlowLayout(FlowLayout.CENTER));
 
-    fastaFileField.setLayout(new FlowLayout(FlowLayout.LEADING));
-
-    fastaFileField.add(new JLabel("Select Input File:"));
+    fastaFileField.add(new JLabel(text));
     fastaFileField.add(fileField);
     fastaFileField.add(prepareBrowseButton(fileField));
 
     return fastaFileField;
   }
+  private JPanel prepareMinMaxField(JTextField minInput, JTextField maxInput)
+  {
+    JPanel inputField = new JPanel();
+    inputField.setLayout(new FlowLayout(FlowLayout.CENTER));
 
+    inputField.add(new JLabel("Min: "));
+    inputField.add(minInput);
+
+    inputField.add(new JLabel("Max: "));
+    inputField.add(maxInput);
+    return inputField;
+  }
+  private JPanel textFieldLeftAlign(String text)
+  {
+    JPanel textField = new JPanel();
+    textField.setLayout(new FlowLayout(FlowLayout.LEFT));
+    
+    textField.add(new JLabel(text));
+    return textField;
+  }
   /*
    * Creates and returns a JButton that can be used to browse for any given
    * file. The input JTextField is associated with the returned button such that
@@ -171,12 +172,13 @@ public class InputDialog extends JDialog
     JButton fileBrowse = new JButton("Browse");
 
     fileBrowse.addActionListener(new ActionListener()
-    {
+        {
 
-      public void actionPerformed(ActionEvent e)
-      {
-        JFileChooser chooser = new JFileChooser();
-        int returnVal = chooser.showOpenDialog(chooser);
+        public void actionPerformed(ActionEvent e)
+        {
+          JFileChooser chooser = new JFileChooser();
+          chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);  
+          int returnVal = chooser.showOpenDialog(chooser);
 
         if (returnVal == JFileChooser.CANCEL_OPTION)
         {
@@ -194,8 +196,8 @@ public class InputDialog extends JDialog
           System.out.println("Encountered Unknown Error");
           System.exit(0);
         }
-      }
-    });
+        }
+        });
 
     return fileBrowse;
   }
@@ -228,23 +230,23 @@ public class InputDialog extends JDialog
     checkBoxField.setLayout(new FlowLayout(FlowLayout.LEADING));
     checkBoxField.add(useSlide);
     useSlide.addItemListener(new ItemListener()
-    {
-      public void itemStateChanged(ItemEvent e)
-      {
+        {
+        public void itemStateChanged(ItemEvent e)
+        {
         if (e.getStateChange() == ItemEvent.SELECTED)
         {
-          slideFields.setVisible(true);
+        slideFields.setVisible(true);
         }
         else if (e.getStateChange() == ItemEvent.DESELECTED)
         {
-          slideFields.setVisible(false);
-          winSize.setText("");
-          shiftIncr.setText("");
+        slideFields.setVisible(false);
+        winSize.setText("");
+        shiftIncr.setText("");
         }
 
         mPane.setVisible(true);
-      }
-    });
+        }
+        });
 
     /*
      * Window Parameters
@@ -304,84 +306,119 @@ public class InputDialog extends JDialog
     JButton runButton = new JButton("Run");
 
     runButton.addActionListener(new ActionListener()
-    {
-      public void actionPerformed(ActionEvent e)
-      {
+        {
+        public void actionPerformed(ActionEvent e)
+        {
         if (mFile.getText().equals(""))
         {
-          JOptionPane.showMessageDialog(null, "No FASTA file was selected",
-              "Invalid File", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(null, "No FASTA was selected",
+          "Invalid File", JOptionPane.ERROR_MESSAGE);
         }
         else if (mFile2.getText().equals(""))
         {
-          JOptionPane.showMessageDialog(null, "No gff file was selected",
-              "Invalid File", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(null, "No gff was selected",
+          "Invalid File", JOptionPane.ERROR_MESSAGE);
         }
         else
         {
-          String sequence = FileReader.readFastaFile(mFile.getText());
+          File fastaDir = new File(mFile.getText());
+          File gffDir = new File(mFile2.getText());
 
-          switch (mOptsBox.getSelectedIndex())
+          ArrayList<String> fastaList = new ArrayList<String>();
+          ArrayList<String> gffList = new ArrayList<String>();
+          //Check if Both fasta and gff inputs are directories
+          if(fastaDir.isDirectory())
           {
-          case 2:
-            sequence = sequence.substring(
-                Integer.valueOf(mRangeStart.getText()) - 1,
-                Integer.valueOf(mRangeEnd.getText()));
-            break;
-          case 1:
-            int startHere = MRNAFinder.findSmallestMRNA(mFile2.getText());
-            //int startHere = 1;
-            sequence = sequence.substring(
-                Math.max(0,startHere - Integer.valueOf(mRangeStart.getText()) - 1),
-                startHere - 1);
-            break;
-          case 0:
-            break;
+            if(!gffDir.isDirectory())
+            {
+               JOptionPane.showMessageDialog(null, "Either Select Two Files or Two Folders",
+                "File/Folder Mismatch", JOptionPane.ERROR_MESSAGE);
+            return;
+            }
+            File[] fileList = fastaDir.listFiles();
+            for(int i = 0; i < fileList.length; i++)
+            { //Add only .fna file names to list
+              if(fileList[i].getName().endsWith(".fna"))
+                  fastaList.add(fileList[i].getName());
+            }
           }
-
-          switch (mTypesBox.getSelectedIndex())
+          else if(gffDir.isDirectory())
           {
-          case 0:
-            mDisplayArea.setText(NaiveSuffixTree.find(sequence,
-                mType2.getText()));
-            break;
-          case 1:
-            mDisplayArea.setText(NaiveSuffixTree.run(sequence,
-                Integer.valueOf(mType2.getText()),
-                Integer.valueOf(mFilter.getText())));
-            break;
+            JOptionPane.showMessageDialog(null, "Either Select Two Files or Two Folders",
+              "File/Folder Mismatch", JOptionPane.ERROR_MESSAGE);
+            return;
           }
+          else
+          {
+            fastaList.add(mFile.getText());
+          }
+          Iterator<String> it = fastaList.iterator();
+          
+          while(it.hasNext())
+          {
+            String fastaPath, gffPath;
+            String fastaName = it.next();
+            if(fastaDir.isDirectory())
+            {
+              fastaPath = fastaDir + "/" + fastaName;
+              gffPath = gffDir + "/" + fastaName.substring(0,fastaName.length() - 4) + ".gff";
+            }
+            else
+            {
+              fastaPath = mFile.getText();
+              gffPath = mFile2.getText();
+            }
+            String sequence = FileReader.readFastaFile(fastaPath);
+            
+            int palindromeMin = 0;
+            int palindromeMax = sequence.length()/2;
+            int loopMin = 0;
+            int loopMax = Math.min(80, sequence.length());
 
+            if (!mPalindromeMin.getText().equals(""))
+              palindromeMin = Integer.valueOf(mPalindromeMin.getText());
+            if (!mPalindromeMin.getText().equals(""))
+              palindromeMax = Integer.valueOf(mPalindromeMax.getText());
+            if (!mPalindromeMin.getText().equals(""))
+              loopMin = Integer.valueOf(mLoopMin.getText());
+            if (!mPalindromeMin.getText().equals(""))
+              loopMax = Integer.valueOf(mLoopMax.getText());
+          
+            //System.out.println("PRange " + palindromeMin + " - " + palindromeMax);
+            //System.out.println("LRange " + loopMin + " - " + loopMax);
+            //System.out.println(fastaPath + "\n" + gffPath + "\n-------------------------------"); 
+            /*Integer Min Max Radius Palindrome, Min Max Loop*/
+            
+          }
+          
         }
       }
-    });
+  });
 
-    return runButton;
-  }
+  return runButton;
+}
 
-  /*
-   * Creates and returns a JButton that allows the user to select a file for the
-   * contents of the JTextArea to be written to.
-   */
-  private JButton createSaveButton()
-  {
-    JButton saveButton = new JButton("Save");
+/*
+ * Creates and returns a JButton that allows the user to select a file for the
+ * contents of the JTextArea to be written to.
+ */
+private JButton createSaveButton()
+{
+  JButton saveButton = new JButton("Save");
 
-    saveButton.addActionListener(new ActionListener()
+  saveButton.addActionListener(new ActionListener()
     {
       public void actionPerformed(ActionEvent e)
       {
         if (mDisplayArea.getText().equals(""))
         {
           JOptionPane.showMessageDialog(null, "No output to save",
-              "Empty output", JOptionPane.ERROR_MESSAGE);
+            "Empty output", JOptionPane.ERROR_MESSAGE);
         }
-
         else
         {
           JFileChooser chooser = new JFileChooser();
           int returnVal = chooser.showSaveDialog(mPane);
-
           if (returnVal == JFileChooser.APPROVE_OPTION)
           {
             try
@@ -392,40 +429,38 @@ public class InputDialog extends JDialog
             } catch (java.io.IOException ioErr)
             {
               JOptionPane.showMessageDialog(null,
-                  "Encountered unknown error when saving output",
-                  "Unable to save output", JOptionPane.ERROR_MESSAGE);
+                "Encountered unknown error when saving output",
+                "Unable to save output", JOptionPane.ERROR_MESSAGE);
             }
           }
-
           else if (returnVal == JFileChooser.ERROR_OPTION)
           {
             JOptionPane.showMessageDialog(null,
-                "Encountered unknown error when saving output",
-                "Unable to save output", JOptionPane.ERROR_MESSAGE);
+              "Encountered unknown error when saving output",
+              "Unable to save output", JOptionPane.ERROR_MESSAGE);
           }
         }
       }
     });
+  return saveButton;
+}
 
-    return saveButton;
-  }
+/*
+ * Self explanatory
+ */
+private JButton createQuitButton()
+{
+  JButton quitButton = new JButton("Quit");
 
-  /*
-   * Self explanatory
-   */
-  private JButton createQuitButton()
-  {
-    JButton quitButton = new JButton("Quit");
-
-    quitButton.addActionListener(new ActionListener()
-    {
+  quitButton.addActionListener(new ActionListener()
+      {
       public void actionPerformed(ActionEvent e)
       {
-        dispose(); // closes the dialog window
-        return;
+      dispose(); // closes the dialog window
+      return;
       }
-    });
+      });
 
-    return quitButton;
-  }
+  return quitButton;
+}
 }
