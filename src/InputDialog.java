@@ -51,7 +51,7 @@ public class InputDialog extends JDialog
    * GUI Components
    */
   private Container mPane;
-  private JTextField mFile, mStartPos, mEndPos, mWinSize, mShiftIncr, mFile2,
+  private JTextField mFile, mStartPos, mEndPos, mWinSize, mShiftIncr,
           mLoopMin, mLoopMax, mPalindromeMin, mPalindromeMax;
   private JTextArea mDisplayArea;
   private JCheckBox mUseSlidingWindow;
@@ -76,7 +76,6 @@ public class InputDialog extends JDialog
 
     //Declare Text Fields
     mFile = new JTextField(20);
-    mFile2 = new JTextField(20);
     mPalindromeMin = new JTextField(5);
     mPalindromeMax = new JTextField(5);
     mLoopMin = new JTextField(5);
@@ -87,13 +86,11 @@ public class InputDialog extends JDialog
 
     //Prepare More Complicated Lines
     JPanel fastaFileField = prepareFileField(mFile, "Select Fasta: ");
-    JPanel gffFileField = prepareFileField(mFile2,  "Select GFF:    ");
     JPanel loopSizeField = prepareMinMaxField(mLoopMin, mLoopMax);
     JPanel palindromeSizeField = prepareMinMaxField(mPalindromeMin, mPalindromeMax);
     
     //Add Lines to Pane
     mPane.add(fastaFileField);
-    mPane.add(gffFileField);
     mPane.add(textFieldLeftAlign("Palindrome Range"));
     mPane.add(palindromeSizeField);
     mPane.add(textFieldLeftAlign("Loop Range"));
@@ -314,60 +311,30 @@ public class InputDialog extends JDialog
         JOptionPane.showMessageDialog(null, "No FASTA was selected",
           "Invalid File", JOptionPane.ERROR_MESSAGE);
         }
-        else if (mFile2.getText().equals(""))
-        {
-        JOptionPane.showMessageDialog(null, "No gff was selected",
-          "Invalid File", JOptionPane.ERROR_MESSAGE);
-        }
         else
         {
           File fastaDir = new File(mFile.getText());
-          File gffDir = new File(mFile2.getText());
-
           ArrayList<String> fastaList = new ArrayList<String>();
-          ArrayList<String> gffList = new ArrayList<String>();
           //Check if Both fasta and gff inputs are directories
           if(fastaDir.isDirectory())
           {
-            if(!gffDir.isDirectory())
-            {
-               JOptionPane.showMessageDialog(null, "Either Select Two Files or Two Folders",
-                "File/Folder Mismatch", JOptionPane.ERROR_MESSAGE);
-            return;
-            }
             File[] fileList = fastaDir.listFiles();
             for(int i = 0; i < fileList.length; i++)
             { //Add only .fna file names to list
               if(fileList[i].getName().endsWith(".fna"))
-                  fastaList.add(fileList[i].getName());
+                  fastaList.add(fileList[i].getPath());
             }
-          }
-          else if(gffDir.isDirectory())
-          {
-            JOptionPane.showMessageDialog(null, "Either Select Two Files or Two Folders",
-              "File/Folder Mismatch", JOptionPane.ERROR_MESSAGE);
-            return;
           }
           else
           {
             fastaList.add(mFile.getText());
           }
           Iterator<String> it = fastaList.iterator();
-          
+          mDisplayArea.setText(""); 
           while(it.hasNext())
           {
-            String fastaPath, gffPath;
-            String fastaName = it.next();
-            if(fastaDir.isDirectory())
-            {
-              fastaPath = fastaDir + "/" + fastaName;
-              gffPath = gffDir + "/" + fastaName.substring(0,fastaName.length() - 4) + ".gff";
-            }
-            else
-            {
-              fastaPath = mFile.getText();
-              gffPath = mFile2.getText();
-            }
+            String fastaPath = it.next();
+            
             String sequence = FileReader.readFastaFile(fastaPath);
             
             int palindromeMin = 0;
@@ -383,13 +350,9 @@ public class InputDialog extends JDialog
               loopMin = Integer.valueOf(mLoopMin.getText());
             if (!mPalindromeMin.getText().equals(""))
               loopMax = Integer.valueOf(mLoopMax.getText());
-            
-            mDisplayArea.setText(NaiveSuffixTree.findPalindromes(sequence, palindromeMin, palindromeMax, loopMin, loopMax));
-            //System.out.println("PRange " + palindromeMin + " - " + palindromeMax);
-            //System.out.println("LRange " + loopMin + " - " + loopMax);
-            //System.out.println(fastaPath + "\n" + gffPath + "\n-------------------------------"); 
-            /*Integer Min Max Radius Palindrome, Min Max Loop*/
-            
+            mDisplayArea.append("\n----------------------\n"+ fastaPath + "\n----------------------\n");
+            mDisplayArea.append(NaiveSuffixTree.findPalindromes(sequence, palindromeMin, palindromeMax, loopMin, loopMax));
+            mDisplayArea.append("\n");
           }
           
         }
