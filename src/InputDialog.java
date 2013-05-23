@@ -383,7 +383,8 @@ public class InputDialog extends JDialog
               loopMin = Integer.valueOf(mLoopMin.getText());
             if (!mPalindromeMin.getText().equals(""))
               loopMax = Integer.valueOf(mLoopMax.getText());
-          
+            
+            mDisplayArea.setText(NaiveSuffixTree.findPalindromes(sequence, palindromeMin, palindromeMax, loopMin, loopMax));
             //System.out.println("PRange " + palindromeMin + " - " + palindromeMax);
             //System.out.println("LRange " + loopMin + " - " + loopMax);
             //System.out.println(fastaPath + "\n" + gffPath + "\n-------------------------------"); 
